@@ -1,7 +1,7 @@
 # etdreader
-Library to read and processing eye tracking data.
+Library to read IVC eyetracking data files, to perform some processing and visual output.
 
-## Features
+### Features
 * Read IVC eyetracking data files
 * Calculate point of regard (POR) matrices
 * Exhibit POR on image
@@ -9,5 +9,11 @@ Library to read and processing eye tracking data.
 * *Exhibit fixations on image (not yet)*
 * *Determine saliency maps from fixations (not yet)*
 
-## Usage
-I'll add something later ...
+### Usage
+*I'll add something later ...*
+
+### Contact
+Ronaldo de Freitas Zampolo
+zampolo@ufpa.br
+zampolo@ieee.org
+
