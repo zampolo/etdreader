@@ -13,7 +13,6 @@ Library to read IVC eyetracking data files, to perform small processing tasks an
 *I'll add something later ...*
 
 ### Contact
-Ronaldo de Freitas Zampolo
-zampolo@ufpa.br
-zampolo@ieee.org
-
+Ronaldo de Freitas Zampolo   
+<zampolo@ufpa.br>   
+<zampolo@ieee.org>
