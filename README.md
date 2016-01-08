@@ -1,5 +1,5 @@
 # etdreader
-Library to read IVC eyetracking data files, to perform some processing and visual output.
+Library to read IVC eyetracking data files, to perform small processing tasks and to give some visual output.
 
 ### Features
 * Read IVC eyetracking data files
