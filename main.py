@@ -8,6 +8,7 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy.signal as sig
 
 ## find_files
 #
@@ -57,6 +58,7 @@ def extract_information(list_of_file_names, path = '/home/zampolo/engenharia/pro
     number_of_samples = []
     calibration_area = []
     head_distance = []
+    sampling_rate = []
     time_matrix = []
     rporx_matrix = []
     rpory_matrix = []
@@ -102,6 +104,10 @@ def extract_information(list_of_file_names, path = '/home/zampolo/engenharia/pro
                 elif 'Head' in splited_line:
                     head_distance.append(splited_line[4])
 
+                # Sampling rate
+                elif 'Sample' in splited_line:
+                    sampling_rate.append(splited_line[3])
+
             # data portion of the file
             elif ( not('Time' in splited_line) &  len(splited_line) > 0 ):
                 # time information
@@ -128,7 +134,7 @@ def extract_information(list_of_file_names, path = '/home/zampolo/engenharia/pro
         # closing data file
         data_file.close()
     
-    return number_of_samples, calibration_area, head_distance, time_matrix, type_matrix, lporx_matrix, lpory_matrix, rporx_matrix, rpory_matrix #, tv_matrix
+    return number_of_samples, calibration_area, head_distance, sampling_rate, time_matrix, type_matrix, lporx_matrix, lpory_matrix, rporx_matrix, rpory_matrix #, tv_matrix
 
 # load_image_information
 #
@@ -196,18 +202,18 @@ def load_image_information(screen_size,name='live'):
 def grouping_por_by_image( file_names, lpx,lpy,rpx,rpy):
     grouped_por = {}
 
-    for name_cont in range(len(file_names)):
-        each_file_name = file_names[name_cont]
+    for file_cont in range(len(file_names)):
+        each_file_name = file_names[file_cont]
         img_name = (((each_file_name.split(sep='_'))[1]).split(sep='.'))[0]
         if img_name in grouped_por:
             #print('sim')
-            grouped_por[img_name][0] = grouped_por[img_name][0] + lpx[name_cont]
-            grouped_por[img_name][1] = grouped_por[img_name][1] + lpy[name_cont]
-            grouped_por[img_name][2] = grouped_por[img_name][2] + rpx[name_cont]
-            grouped_por[img_name][3] = grouped_por[img_name][3] + rpy[name_cont]
+            grouped_por[img_name][0] = grouped_por[img_name][0] + lpx[file_cont]
+            grouped_por[img_name][1] = grouped_por[img_name][1] + lpy[file_cont]
+            grouped_por[img_name][2] = grouped_por[img_name][2] + rpx[file_cont]
+            grouped_por[img_name][3] = grouped_por[img_name][3] + rpy[file_cont]
         else:
             #print('nao')
-            grouped_por[img_name]= [lpx[name_cont], lpy[name_cont], rpx[name_cont], rpy[name_cont]]
+            grouped_por[img_name]= [lpx[file_cont], lpy[file_cont], rpx[file_cont], rpy[file_cont]]
             #print(len(grouped_por),img_name,len(grouped_por[img_name][0]),type(grouped_por[img_name][0]))
 
     for each_one in grouped_por:
@@ -218,6 +224,18 @@ def grouping_por_by_image( file_names, lpx,lpy,rpx,rpy):
         
     return grouped_por
 
+# det_indexes
+#
+# det_indexes( x, y, shft,shp )
+# 
+# inputs:
+#   x,y: POR coordinate vectors
+#   shft: coordinate shift with respect screen coordinates
+#   shp: image size
+#
+# output:
+#   ix, iy: corrected coordinates
+#
 def det_indexes( x, y, shft,shp ):
     
     ix = (x-shft[0]).astype(int)
@@ -236,9 +254,17 @@ def det_indexes( x, y, shft,shp ):
     iy = iy * mask
 
     return ix, iy
-    
 
-
+# mapping_por_into_image
+#
+# mapping_por_into_image( image, image_por, shift, lcolour='blue', rcolour='red' , mcolour= 'green')
+#
+# Inputs:
+#
+#
+# Outputs:
+#
+#
 def mapping_por_into_image( image, image_por, shift, lcolour='blue', rcolour='red' , mcolour= 'green'):
 
     lpor_mat = np.zeros(image.shape)
@@ -265,15 +291,98 @@ def mapping_por_into_image( image, image_por, shift, lcolour='blue', rcolour='re
     return lpor_mat, rpor_mat, mpor_mat, lpor_img, rpor_img, mpor_img
 
 
+def fixation_detection(porx,pory, screenx, screeny, dimx=17.5, dimy = 17.5, vel_thr=0.65,sampling_rate = 500,viewing_distance = 700):
+
+    dt = 1/sampling_rate
+
+    shiftx = screenx/2
+    shifty = screeny/2
+
+    working_porx = np.array(porx) - shiftx
+    working_pory = np.array(pory) - shifty
+
+    anglesx = np.arctan((working_porx * dimx/screenx)/viewing_distance)
+    anglesy = np.arctan((working_pory * dimy/screeny)/viewing_distance)
+    
+    hv = np.array([1,0,-1])
+
+    danglex = sig.fftconvolve(anglesx,hv,'valid') # angle domain
+
+    dangley = sig.fftconvolve(anglesy,hv,'valid') # angle domain
+    
+    total_velocity = np.sqrt(np.square(danglex)+np.square(dangley))/dt
+
+    tr_tv = total_velocity > vel_thr
+    
+    #print(vx1.shape)
+    #print(vx2.shape)
+    
+    #plt.figure()
+    #plt.plot(porx,'r')
+    #plt.plot(pory,'b')
+    #plt.grid(True)
+    
+    #plt.figure()
+    #plt.plot(anglesx,'r')
+    #plt.plot(anglesy,'b')
+    #plt.grid(True)
+
+    #plt.figure()
+    #plt.plot(total_velocity,'r')
+    #plt.grid(True)
+
+    #plt.figure()
+    #plt.plot(tr_tv,'r')
+    #plt.plot(fix_points_y,'b')
+    #plt.grid(True)
+
+    #plt.show()
+
+    fixx = 0
+    fixy = 0
+    return fixx, fixy
+
+
+def fixation_detection_and_grouping( file_names, lpx,lpy,rpx,rpy, screenresx=1280,screenresy=1024):
+    grouped_fix = {}
+
+    for file_count in range(len(file_names)):
+        each_file_name = file_names[file_count]
+        img_name = (((each_file_name.split(sep='_'))[1]).split(sep='.'))[0]
+
+        lfx,lfy = fixation_detection(lpx[file_count],lpy[file_count],screenresx,screenresy)
+        rfx,rfy = fixation_detection(rpx[file_count],rpy[file_count],screenresx,screenresy)
+        '''
+        if img_name in grouped_por:
+            #print('sim')
+            grouped_fix[img_name][0] = grouped_fix[img_name][0] + lfx[name_cont]
+            grouped_fix[img_name][1] = grouped_fix[img_name][1] + lfy[name_cont]
+            grouped_fix[img_name][2] = grouped_fix[img_name][2] + rfx[name_cont]
+            grouped_fix[img_name][3] = grouped_fix[img_name][3] + rfy[name_cont]
+        else:
+            #print('nao')
+            grouped_fix[img_name]= [lfx[name_cont], lfy[name_cont], rfx[name_cont], rfy[name_cont]]
+            #print(len(grouped_por),img_name,len(grouped_por[img_name][0]),type(grouped_por[img_name][0]))
+
+    for each_one in grouped_fix:
+        grouped_fix[each_one][0] = np.array(grouped_fix[each_one][0])
+        grouped_fix[each_one][1] = np.array(grouped_fix[each_one][1])
+        grouped_fix[each_one][2] = np.array(grouped_fix[each_one][2])
+        grouped_fix[each_one][3] = np.array(grouped_fix[each_one][3])
+        
+    return grouped_por
+    '''
+
 # ========== test ================
 
 files = find_files()
-ns, ca, hd, ti, tp, lporx,lpory,rporx,rpory = extract_information(files)
-#print(' ================================== ')
-#print('Number of samples: ',ns[0])
-#print('Calibration area: ',ca[0],' pixels')
-#print('Head distance: ',hd[0], ' mm')
-#print('Number of time points: ',len(ti[0]))
+ns, ca, hd, sp, ti, tp, lporx,lpory,rporx,rpory = extract_information(files)
+print(' ================================== ')
+print('Number of samples: ',ns[0])
+print('Calibration area: ',ca[0],' pixels')
+print('Head distance: ',hd[0], ' mm')
+print('Sampling rate: ',sp[0], ' Hz')
+print('Number of time points: ',len(ti[0]))
 
 
 imageinfo = load_image_information(screen_size=ca[0])
@@ -286,10 +395,13 @@ imageinfo = load_image_information(screen_size=ca[0])
 gp = grouping_por_by_image( files, lporx, lpory, rporx, rpory)
 #print(len(gp),len(gp['stream'][0]),type(gp['stream'][0]))
 
+fixation_detection_and_grouping(files,lporx,lpory,rporx,rpory)
+    
 #print('Image information: ', imageinfo)
 #print('Size: ',s[0])
 #print('TV: ',tv[0])
 
+'''
 path_images = '/home/zampolo/engenharia/projetos/posdoc/data/ivc/eyetrack_live/images/'
 image_name = 'lighthouse2'
 img = plt.imread(path_images+image_name+'.bmp')
@@ -326,3 +438,4 @@ plt.title(image_name+': average POR on image')
 
 plt.show()
 
+'''
