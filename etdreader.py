@@ -8,7 +8,6 @@
 
 import os
 import numpy as np
-import matplotlib.pyplot as plt
 import scipy.signal as sig
 import scipy.ndimage.filters as filt2D
 
@@ -443,7 +442,10 @@ def fixation_detection_and_grouping( file_names, lpx,lpy,rpx,rpy, time, screenRe
         fixation_groups = fixation_detection(porx,pory,screenResX,screenResY,timeArr,velThreshold=50,viewingDistance=viewDistance)
         fixation_groups2 = fixation_filtering1(fixation_groups )
         fixation_groups3 = fixation_filtering2(fixation_groups2 )
-        print('User #', file_count, len(fixation_groups), len(fixation_groups2),len(fixation_groups3))
+        
+        # The next line of code should be commented if not in test\study mode
+        #print('User #', file_count, len(fixation_groups), len(fixation_groups2),len(fixation_groups3))
+        print('Processing file #', file_count, ' from ', len(file_names))
         
         if img_name in grouped_fix:
             #print('sim')
