@@ -111,14 +111,14 @@ def extract_information(list_of_file_names, path = '/home/zampolo/engenharia/pro
             # data portion of the file
             elif ( not('Time' in splited_line) &  len(splited_line) > 0 ):
                 # time information
-                time_vector.append(splited_line[0])
+                time_vector.append(float(splited_line[0]))
                 # type of data (sample or message)
                 type_vector.append(splited_line[1])
                 # POR
-                lporx_vector.append(float(splited_line[17]))
-                lpory_vector.append(float(splited_line[18]))
-                rporx_vector.append(float(splited_line[19]))
-                rpory_vector.append(float(splited_line[20]))
+                lporx_vector.append(float(splited_line[17])-1)
+                lpory_vector.append(float(splited_line[18])-1)
+                rporx_vector.append(float(splited_line[19])-1)
+                rpory_vector.append(float(splited_line[20])-1)
                 
                 #tv_vector.append(splited_line[21])
                 
@@ -180,8 +180,8 @@ def load_image_information(screen_size,name='live'):
                    'womanhat':[(480,720)]}
     # Detemining offsets
     for img in imginfo:
-        shiftx = (screen_size[0] - imginfo[img][0][0])//2 +1
-        shifty = (screen_size[1] - imginfo[img][0][1])//2 +1
+        shiftx = (screen_size[0] - imginfo[img][0][0])//2 #+1
+        shifty = (screen_size[1] - imginfo[img][0][1])//2 #+1
         imginfo[img].append((shiftx,shifty))
                    
     
@@ -290,68 +290,171 @@ def mapping_por_into_image( image, image_por, shift, lcolour='blue', rcolour='re
     
     return lpor_mat, rpor_mat, mpor_mat, lpor_img, rpor_img, mpor_img
 
+# detect fixations
+#
+def fixation_detection(porx,pory, screenx, screeny, tmp, velThreshold=50, viewingDistance = 1.5):
 
-def fixation_detection(porx,pory, screenx, screeny, dimx=17.5, dimy = 17.5, vel_thr=0.65,sampling_rate = 500,viewing_distance = 700):
-
-    dt = 1/sampling_rate
-
+    # centre of the screen
     shiftx = screenx/2
     shifty = screeny/2
 
-    working_porx = np.array(porx) - shiftx
-    working_pory = np.array(pory) - shifty
+    # correcting PORs reference from the top-left to centre of the screen
+    wPORx1 = porx - shiftx
+    wPORy1 = pory - shifty
 
-    anglesx = np.arctan((working_porx * dimx/screenx)/viewing_distance)
-    anglesy = np.arctan((working_pory * dimy/screeny)/viewing_distance)
+    # Calculating angles
+    wPORx2 = np.roll(wPORx1,-1) # shifted versions of
+    wPORx2[-1] = 0              #
+    wPORy2 = np.roll(wPORy1,-1) # POR coordinates
+    wPORy2[-1] = 0              #
     
-    hv = np.array([1,0,-1])
+    tmp2 = np.roll(tmp,-1) # shifted time vector
+    tmp2[-1] = 0
 
-    danglex = sig.fftconvolve(anglesx,hv,'valid') # angle domain
+    dt = tmp2-tmp
+    dt = dt[:-1] * 1e-6 # convent to seconds
 
-    dangley = sig.fftconvolve(anglesy,hv,'valid') # angle domain
     
-    total_velocity = np.sqrt(np.square(danglex)+np.square(dangley))/dt
+    ## method 01 - IVC reference code
+    alpha1 = 2*np.arctan(np.sqrt(np.square(wPORx2-wPORx1)+np.square(wPORy2-wPORy1))/( 2 * viewingDistance * screeny ))*180/np.pi
+    alpha1 = alpha1[:-1] # alpha1 is given in degrees, the last element is not considered
+    vlct1 = alpha1/dt # velocity 
 
-    tr_tv = total_velocity > vel_thr
+    ## method 02 - Author's
+    dd = (viewingDistance * screeny)**2
+    xx1 = wPORx1 * wPORx1 
+    xx2 = wPORx2 * wPORx2
+    yy1 = wPORy1 * wPORy1 
+    yy2 = wPORy2 * wPORy2 
+
+    alpha2 = np.arccos((wPORx1*wPORx2 + wPORy1*wPORy2 + dd)/(np.sqrt((xx1+yy1+dd)*(xx2+yy2+dd))))*180/np.pi
+    alpha2 = alpha2[:-1]# alpha2 is given in degrees, the last element is not considered
+    vlct2 = alpha2/dt
+
+    ## Both methods seem to be equivalent for this operation conditions. Further investigations might demonstra the limits of the first approach
+
     
-    #print(vx1.shape)
-    #print(vx2.shape)
+    # Detecting fixations and grouping
+    counter = 0
+    fix_groups = []
+    Flag = False
+    counter_groups = 0
+
     
-    #plt.figure()
-    #plt.plot(porx,'r')
-    #plt.plot(pory,'b')
-    #plt.grid(True)
+    for counter in range(len(vlct2)):
+        if vlct2[counter] < velThreshold:
+            if Flag == False:
+                fix_groups.append({'x': [ porx[counter],porx[counter+1] ],
+                                   'y': [ pory[counter],pory[counter+1]],
+                                   'timeBegin': tmp[counter],
+                                   'timeFinal': tmp[counter+1],
+                                   'xAvg': np.average([ porx[counter],porx[counter+1]]),
+                                   'yAvg': np.average([ pory[counter],pory[counter+1]])})
+                Flag = True
+                
+            else:
+                fix_groups[counter_groups]['x'].append(porx[counter+1])
+                fix_groups[counter_groups]['y'].append(pory[counter+1])
+                fix_groups[counter_groups]['timeFinal']= tmp[counter+1]
+                fix_groups[counter_groups]['xAvg'] = np.average(fix_groups[counter_groups]['x'])
+                fix_groups[counter_groups]['yAvg'] = np.average(fix_groups[counter_groups]['y'])
+        else:
+            if Flag == True:
+                Flag = False
+                
+                counter_groups += 1
+
     
-    #plt.figure()
-    #plt.plot(anglesx,'r')
-    #plt.plot(anglesy,'b')
-    #plt.grid(True)
-
-    #plt.figure()
-    #plt.plot(total_velocity,'r')
-    #plt.grid(True)
-
-    #plt.figure()
-    #plt.plot(tr_tv,'r')
-    #plt.plot(fix_points_y,'b')
-    #plt.grid(True)
-
-    #plt.show()
-
-    fixx = 0
-    fixy = 0
-    return fixx, fixy
+    return fix_groups
 
 
-def fixation_detection_and_grouping( file_names, lpx,lpy,rpx,rpy, screenresx=1280,screenresy=1024):
+def fixation_filtering1(fix_groupsInp, maxAngle = 0.5, maxTime = 75, viewingDistance = 1.5, screeny = 1024 ):
+    counter_groups = 0
+
+    fix_groups = fix_groupsInp.copy()
+    
+    while counter_groups < (len(fix_groups)-1):
+
+        #print('Comprimento: ',len(fix_groups))
+        #print('Contadores: ',counter_groups,counter_groups+1)
+        #print('Chave1: ',fix_groups[counter_groups].keys() )
+        #print('Chave2: ',fix_groups[counter_groups+1].keys() )
+        #print('---')
+
+        x2 = fix_groups[counter_groups+1]['xAvg']
+        x1 = fix_groups[counter_groups]['xAvg']
+        
+        y2 = fix_groups[counter_groups+1]['yAvg']
+        y1 = fix_groups[counter_groups]['yAvg']
+        
+        dd = (viewingDistance * screeny)**2
+
+        # Elapsed time between two fixation groups
+        dt = fix_groups[counter_groups+1]['timeBegin']-fix_groups[counter_groups]['timeFinal']
+        dt = dt * 1e-3 # convertion from usec to msec
+
+        # Visual angle between neighbouring fixation groups
+        alpha = np.arccos((x1*x2 + y1*y2 + dd)/(np.sqrt((x1*x1+y1*y1+dd)*(x2*x2+y2*y2+dd))))*180/np.pi
+
+        if ((dt < maxTime) & (alpha < maxAngle)):
+
+            # Colapse x and y points
+            fix_groups[counter_groups]['x'] = fix_groups[counter_groups]['x'] + fix_groups[counter_groups+1]['x']
+            fix_groups[counter_groups]['y'] = fix_groups[counter_groups]['y'] + fix_groups[counter_groups+1]['y']
+
+            # Update averages
+            fix_groups[counter_groups]['xAvg'] = np.average(fix_groups[counter_groups]['x'])
+            fix_groups[counter_groups]['yAvg'] = np.average(fix_groups[counter_groups]['y'])
+
+            # Update timeFinal
+            fix_groups[counter_groups]['timeFinal'] = fix_groups[counter_groups+1]['timeFinal']
+
+            fix_groups.pop(counter_groups+1)
+
+        else:
+            counter_groups += 1
+
+    return fix_groups
+
+def fixation_filtering2(fix_groupsInp, minTime = 100 ):
+    counter_groups = 0
+
+    fix_groups = fix_groupsInp.copy()
+    
+    while counter_groups < len(fix_groups):
+
+        # Fixation time
+        dt = fix_groups[counter_groups]['timeFinal']-fix_groups[counter_groups]['timeBegin']
+        dt = dt * 1e-3 # convertion from usec to msec
+
+        if ( dt < minTime ):
+            fix_groups.pop(counter_groups)
+        else:
+            counter_groups += 1
+
+    return fix_groups
+
+
+def fixation_detection_and_grouping( file_names, lpx,lpy,rpx,rpy, time, screenResX=1280,screenResY=1024,viewDistance = 1.5):
     grouped_fix = {}
 
     for file_count in range(len(file_names)):
         each_file_name = file_names[file_count]
         img_name = (((each_file_name.split(sep='_'))[1]).split(sep='.'))[0]
 
-        lfx,lfy = fixation_detection(lpx[file_count],lpy[file_count],screenresx,screenresy)
-        rfx,rfy = fixation_detection(rpx[file_count],rpy[file_count],screenresx,screenresy)
+        # list to array conversion
+        wlpx,wlpy,wrpx,wrpy = np.array(lpx[file_count]),np.array(lpy[file_count]),np.array(rpx[file_count]),np.array(rpy[file_count])
+        timeArr = np.array(time[file_count])
+
+        # from binocular to monocular (mean of both)
+        porx = (wlpx + wrpx)/2
+        pory = (wlpy + wrpy)/2
+
+        # fixation detection
+        fixation_groups = fixation_detection(porx,pory,screenResX,screenResY,timeArr,velThreshold=50,viewingDistance=viewDistance)
+        fixation_groups2 = fixation_filtering1(fixation_groups )
+        fixation_groups3 = fixation_filtering2(fixation_groups2 )
+        print('User #', file_count, len(fixation_groups), len(fixation_groups2),len(fixation_groups3))
         '''
         if img_name in grouped_por:
             #print('sim')
@@ -395,7 +498,7 @@ imageinfo = load_image_information(screen_size=ca[0])
 gp = grouping_por_by_image( files, lporx, lpory, rporx, rpory)
 #print(len(gp),len(gp['stream'][0]),type(gp['stream'][0]))
 
-fixation_detection_and_grouping(files,lporx,lpory,rporx,rpory)
+fixation_detection_and_grouping(files,lporx,lpory,rporx,rpory,ti)
     
 #print('Image information: ', imageinfo)
 #print('Size: ',s[0])
