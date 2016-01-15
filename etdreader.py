@@ -1,25 +1,25 @@
-## @package etdreader
+## @namespace etdreader
 #
-# Author: Ronaldo de Freitas Zampolo
-# Begining: 07.jan.2016
-# Version: 1.0 (14.jan.2016)
+# @brief Read eye tracking data files in IVC format
 #
-# Read eye tracking data files in IVC format
+# @author Ronaldo de Freitas Zampolo
+# @version 1.0
+# @date 14.jan.2016
+# @date 07.jan.2016 (begining)
+#
 
 import os
 import numpy as np
 import scipy.signal as sig
 import scipy.ndimage.filters as filt2D
 
-## find_files
+## 
+# @brief This function retrieves all file names in *path* with any of given extentions in *type*
 #
-# found_files = find_files(path: string,types: list)
-# inputs:
-#    path: string
-#    types: list of strings
+# @param path data file path *string*
+# @param types data file extention *list of strings*
 #
-# output:
-#   found_files: list of strings containing all the files of a given path of type 
+# @retval found_files *list of strings* containing all the files of a given *path* with extension *type*
 # 
 def find_files( path = '/home/zampolo/engenharia/projetos/posdoc/data/ivc/eyetrack_live/etdata/', types = ['.txt'] ):
     try:
@@ -34,25 +34,23 @@ def find_files( path = '/home/zampolo/engenharia/projetos/posdoc/data/ivc/eyetra
         print('Some problem has occurred. Verify input parameters.')
 #-----------------
 
-# extract_information
+## 
+# @brief Extract relevant information from data files and store it into variables for further processing
+# @param list_of_file_names list with all test file names (*list of strings*)
+# @param  path where all data files are (*string*)
 #
-# extract_information(list_of_file_names, path)
-# inputs:
-#   list_of_fil_names: list of strings
-#   path: string, default value '/home/zampolo/engenharia/projetos/posdoc/data/ivc/eyetrack_live/etdata/'
+# @retval  number_of_samples  list with the number of samples for each test (*list of string*).
+# @retval  calibration_area  list with the screen calibration area for each test (*list of tuple of integers*). Each element is a *tuple of integers* (X,Y), where X and Y correspond to the horizontal and vertical resolutions respectively.
+# @retval  head_distance list with the distance between subject head and screen in mm for each test (*list of string*)
+# @retval  sampling_rate list with the nominal sampling rate for each test in Hz (*list of string*)
+# @retval  time_matrix list of time vector for each test. The time vector contains the value of system clock for every sampling time in micro seconds (list of floats)
+# @retval  type_matrix  list of data type (MSG: message or SMP: sample) vectors for each test. Each data type vector contains a string that indicates the type of data for every sample (*list of string*)
+# @retval  lporx_matrix matrix with the left point of regard (POR) x vector for each test (*list of floats*)
+# @retval  lpory_matrix matrix with the left point of regard (POR) y vector for each test (*list of floats*)
+# @retval  rporx_matrix matrix with the right point of regard (POR) x vector for each test (*list of floats*)
+# @retval  rpory_matrix matrix with the right point of regard (POR) y vector for each test (*list of floats*)
 #
-# outputs:
-#   number_of_samples: string
-#   calibration_area: tuple of strings
-#   head_distance: string
-#   time_matrix: matrix (line: user, column: sampling time)
-#   type_matrix: data type (message ou sample) (line: user, column: sampling time)
-#   lporx_matrix: left point od regard (por) x (line: user, column: sampling time)
-#   lpory_matrix: left por y (line: user, column: sampling time)
-#   rporx_matrix: right por x (line: user, column: sampling time)
-#   rpory_matrix: right por y (line: user, column: sampling time)
-#
-#   Obs.: all the outputs are strings. Perhaps in the near future, internal convertions to real ou integer types will be implemented.
+# @attention Attention to output types
 #
 def extract_information(list_of_file_names, path = '/home/zampolo/engenharia/projetos/posdoc/data/ivc/eyetrack_live/etdata/'):
     # output lists initialisation
@@ -67,8 +65,6 @@ def extract_information(list_of_file_names, path = '/home/zampolo/engenharia/pro
     lpory_matrix = []
     type_matrix = []
     
-    #tv_matrix = []
-
     # list of files loop
     for each_file in list_of_file_names:
         # opening each data file
@@ -82,8 +78,6 @@ def extract_information(list_of_file_names, path = '/home/zampolo/engenharia/pro
         lpory_vector = []
         type_vector = []
         
-        #tv_vector = []
-
         # file loop
         for each_line in data_file: # reading each line of file data
             
@@ -130,23 +124,20 @@ def extract_information(list_of_file_names, path = '/home/zampolo/engenharia/pro
         lpory_matrix.append(lpory_vector)
         rporx_matrix.append(rporx_vector)
         rpory_matrix.append(rpory_vector)
-        #tv_matrix.append(tv_vector)
         
         # closing data file
         data_file.close()
     
-    return number_of_samples, calibration_area, head_distance, sampling_rate, time_matrix, type_matrix, lporx_matrix, lpory_matrix, rporx_matrix, rpory_matrix #, tv_matrix
+    return number_of_samples, calibration_area, head_distance, sampling_rate, time_matrix, type_matrix, lporx_matrix, lpory_matrix, rporx_matrix, rpory_matrix 
 
-# load_image_information
-#
-# load_image_information(screen_size,name)
+##
+# @brief Read test images' resolutions and calculate offsets.
+# @detailes The offset are horizontal and vertical shifts that are calculated from image resolution (in pixels) and from screen size (in pixels too). Such an offset is necessary to plot correctly the PORs, which are given with respect to screen coordinates, in the corresponding image matrices. In other words, it is just a translation in the reference sytem. It is assumed the test images were exhibited in the centre of the screen during tests.
 # 
-# input:
-#   screen_size: dimensions of the screen (tuple)
-#   name: name of data base of interest (string)
+# @param screen_size dimensions of the screen (*tuple of integers*)
+# @param name name of data base of interest (*string*)
 #
-# output:
-#   imginfo : dictionary {name_of_the_images: [(resolution),(shift)]}
+# @retval imginfo *dictionary of list* whose keys are the names of test images. The list is composed of two elements: the first one is the resolution of the test image (*tuple of integers*) and the second is the calculated offsets (*tuple of floats*)
 #
 def load_image_information(screen_size,name='live'):
     if name == 'live':
@@ -188,18 +179,18 @@ def load_image_information(screen_size,name='live'):
     
     return imginfo
 
-# grouping_por_by_image
-#
-# grouping_por_by_image( image_names, file_names, por)
+##
+# @brief This function groups POR vectors of different tests but same test image intoa single vector 
+# @detailes Each time a test image is exhibited, one different data file is generated. This function analyses data read, identifies corresponding test images, and groups POR data of same test image.
 # 
-# inputs:
-#   image_names: list of string
-#   file_names: list of srting
-#   por: list of integer [lporx,lpory,rpox,rpory]
+# @param file_names list of all data file names (*list of string*)
+# @param lpx left eye POR x values (*list of list of floats*). The elements of this list are all the left eye POR x vectors (*list of floats*) of all tests.
+# @param lpy left eye POR y values (*list of list of floats*). The elements of this list are all the left eye POR y vectors (*list of floats*) of all tests.
+# @param rpx left eye POR x values (*list of list of floats*). The elements of this list are all the right eye POR x vectors (*list of floats*) of all tests.
+# @param rpy left eye POR y values (*list of list of floats*). The elements of this list are all the right eye POR y vectors (*list of floats*) of all tests.
+# @retval grouped_por dictionary of *list of numpy.array*, whose keys are test image names. The elements of each list are *numpy.arrays* that contain grouped POR data in the same order of the input: lpx,lpy, rpx, rpy.
 #
-# output:
-#   grouped_por: dictionary of matrix {image_names: [lporx,lpory,rporx,rpory]}
-#
+# @remark The parameter *file_names* are used as an index to identify the POR data of each test image
 def grouping_por_by_image( file_names, lpx,lpy,rpx,rpy):
     grouped_por = {}
 
@@ -225,17 +216,16 @@ def grouping_por_by_image( file_names, lpx,lpy,rpx,rpy):
         
     return grouped_por
 
-# det_indexes
-#
-# det_indexes( x, y, shft,shp )
+##
+# @brief Determine POR values in image coordinates
+# @details This function calculates the corresponding POR values in image coordidates from original PORs, previous calculated offsets, and image dimensions. It is necessary to plot POR data on test images. Auxiliary to *mapping_por_into_image* function.
 # 
-# inputs:
-#   x,y: POR coordinate vectors
-#   shft: coordinate shift with respect screen coordinates
-#   shp: image size
+# @param x vector of POR x values
+# @param y vector of POR y values
+# @param shft coordinate shift (offset) with respect screen coordinates
+# @param shp image size
 #
-# output:
-#   ix, iy: corrected coordinates
+# @retval ix, iy corrected POR values (with respect to image coordinates)
 #
 def det_indexes( x, y, shft,shp ):
     
@@ -256,16 +246,16 @@ def det_indexes( x, y, shft,shp ):
 
     return ix, iy
 
-# mapping_por_into_image
+##
+# @brief Create image and matrix of mapped POR
+# @detailes Create a new image from test image and original POR data. Also create a binary matrix with POR mapped into image coordinates (necessary to calculate the saliency map)
+# @param image *numpy.array* containing a test image
+# @param image_por list *array* containing POR data (x and y arrays, respectively)
+# @shift calculated offset
+# @param colour RGB vector to plot POR on image (*list of integers*)
 #
-# mapping_por_into_image( image, image_por, shift, lcolour='blue', rcolour='red' , mcolour= 'green')
-#
-# Inputs:
-#
-#
-# Outputs:
-#
-#
+# @retval por_mat POR matrix for further assessment of saliency map (*numpy.array*)
+# @retval por_img test image with POR (*numpy.array*)
 def mapping_por_into_image( image, image_por, shift, colour= [0,0,255]):
 
     por_mat = np.zeros(image.shape)
@@ -278,7 +268,23 @@ def mapping_por_into_image( image, image_por, shift, colour= [0,0,255]):
     
     return por_mat,por_img
 
-# detect fixations
+## 
+# @brief Detect fixations from POR data.
+# @details 
+#
+# @param porx, pory POR x and y vectors (in screen coordinates)
+# @param screenx, screeny x and y screen dimensions
+# @param tmp time vector for each POR sample
+# @param velThreshold angular velocity threshold
+# @param viewingDistance viewing distance in terms of screen height (screeny)
+#
+# @retval fix_groups groups of fixation of one single test. It is list of dictionaries. Each element of the list corresponds to the data of one single fixation. Such data is organised into a dictionary with the following keys:
+# @li @c 'x': x POR vector of the fixation
+# @li @c 'y': y POR vector of the fixation
+# @li @c 'timeBegin': recorded time corresponding to the beging of the fixation
+# @li @c 'timeFinal': recorded time corresponding to the end of the fixation
+# @li @c 'xAvg': mean of the x POR vector
+# @li @c 'yAvg': mean of the y POR vector
 #
 def fixation_detection(porx,pory, screenx, screeny, tmp, velThreshold=50, viewingDistance = 1.5):
 
@@ -355,7 +361,30 @@ def fixation_detection(porx,pory, screenx, screeny, tmp, velThreshold=50, viewin
     
     return fix_groups
 
-
+## 
+# @brief Colapse fixations, whose combined duration and visual angle distance are too short.
+# @details 
+#
+# @param fix_groupsInp groups of fixation of one single test. It is list of dictionaries. Each element of the list corresponds to the data of one single fixation. Such data is organised into a dictionary with the following keys:
+# @li @c 'x': x POR vector of the fixation
+# @li @c 'y': y POR vector of the fixation
+# @li @c 'timeBegin': recorded time corresponding to the beging of the fixation
+# @li @c 'timeFinal': recorded time corresponding to the end of the fixation
+# @li @c 'xAvg': mean of the x POR vector
+# @li @c 'yAvg': mean of the y POR vector
+# @param maxAngle maximum visual angle of POR that belongs to the same fixation (in degrees)
+# @param maxTime  maximum time of one fixation (in ms)
+# @param viewingDistance user viewing distance (in terms of screen height)
+# @param screeny screen height (in pixels)
+#
+# @retval fix_groups groups of colapsed fixation of one single test. It is list of dictionaries. Each element of the list corresponds to the data of one single fixation. Such data is organised into a dictionary with the following keys:
+# @li @c 'x': x POR vector of the fixation
+# @li @c 'y': y POR vector of the fixation
+# @li @c 'timeBegin': recorded time corresponding to the beging of the fixation
+# @li @c 'timeFinal': recorded time corresponding to the end of the fixation
+# @li @c 'xAvg': mean of the x POR vector
+# @li @c 'yAvg': mean of the y POR vector
+# 
 def fixation_filtering1(fix_groupsInp, maxAngle = 0.5, maxTime = 75, viewingDistance = 1.5, screeny = 1024 ):
     counter_groups = 0
 
@@ -404,6 +433,28 @@ def fixation_filtering1(fix_groupsInp, maxAngle = 0.5, maxTime = 75, viewingDist
 
     return fix_groups
 
+## 
+# @brief Eliminate fixations, whose  duration is under a certain threshold.
+# @details 
+#
+# @param fix_groupsInp groups of fixation of one single test. It is list of dictionaries. Each element of the list corresponds to the data of one single fixation. Such data is organised into a dictionary with the following keys:
+# @li @c 'x': x POR vector of the fixation
+# @li @c 'y': y POR vector of the fixation
+# @li @c 'timeBegin': recorded time corresponding to the beging of the fixation
+# @li @c 'timeFinal': recorded time corresponding to the end of the fixation
+# @li @c 'xAvg': mean of the x POR vector
+# @li @c 'yAvg': mean of the y POR vector
+# 
+# @param minTime minimum time to be considered a fixation (in ms)
+#
+# @retval fix_groups groups corrected fixation of one single test. It is list of dictionaries. Each element of the list corresponds to the data of one single fixation. Such data is organised into a dictionary with the following keys:
+# @li @c 'x': x POR vector of the fixation
+# @li @c 'y': y POR vector of the fixation
+# @li @c 'timeBegin': recorded time corresponding to the beging of the fixation
+# @li @c 'timeFinal': recorded time corresponding to the end of the fixation
+# @li @c 'xAvg': mean of the x POR vector
+# @li @c 'yAvg': mean of the y POR vector
+# 
 def fixation_filtering2(fix_groupsInp, minTime = 100 ):
     counter_groups = 0
 
@@ -422,7 +473,18 @@ def fixation_filtering2(fix_groupsInp, minTime = 100 ):
 
     return fix_groups
 
-
+##
+# @brief Calculate the filtered fixation map for every test and then group according to test image
+# @detailes
+#
+# @param file_names vector with data file names of all tests performed
+# @param lpx,lpy,rpx,rpy POR vectors (binocular data, with respect to screen coordinates)
+# @param time time vector (in micro secords)
+# @param screenResX, screenResY screen resolution (in pixels)
+# @param viewDistance viewing distance in terms of screen height
+#
+# @retval grouped_fix fixation data for each image. It is a dictionary of lists, whose keys are test image names. Each element of such a list contains fixation data of one test. In turn, every test is a list of fixations, which is a dictionary with keys 'x', 'y', 'timeBegin', 'timeFinal', 'xAvg' and 'yAvg' 
+#
 def fixation_detection_and_grouping( file_names, lpx,lpy,rpx,rpy, time, screenResX=1280,screenResY=1024,viewDistance = 1.5):
     grouped_fix = {}
     
@@ -458,7 +520,16 @@ def fixation_detection_and_grouping( file_names, lpx,lpy,rpx,rpy, time, screenRe
     
     return grouped_fix
 
-
+##
+# @brief Determine the saliency map from a fixation matrix.
+# @detailes The saliency map is calculated by a 2D convolution between the fixation matrix and a Gaussian kernel. The standard deviation of the Gaussian function corresponds to one degree of visual angle (the viewing distance must be considered)
+#
+# @param fixationMat fixation matrix
+# @param screen_height height of the screen in pixels
+# @param viewingDistance viewing distance in terms of screen height
+#
+# @retval saliencyMatrix saliency map
+#
 def saliency_map_from_fixations( fixationMat,screen_height = 1024, viewingDistance=1.5 ):
 
     sigma = 2 * viewingDistance * screen_height * np.tan( 0.5 * np.pi / 180 ) # standard deviation calculation (pixels)
