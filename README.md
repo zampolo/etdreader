@@ -24,5 +24,5 @@ Note that this project is been developed in Python 3.x (it will not work with Py
 
 *Ronaldo F. ZAMPOLO* |  LaPS/FCT/ITEC/UFPA                
  :------------------------------|------ 
- :school:|  www.laps.ufpa.br/zampolo
- :envelope:      |  <zampolo@ufpa.br>, zampolo@ieee.org
+ Home page :school: : |  www.laps.ufpa.br/zampolo
+ Emails :envelope: :      |  <zampolo@ufpa.br>, zampolo@ieee.org
