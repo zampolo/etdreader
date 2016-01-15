@@ -10,7 +10,8 @@ Library to read IVC eyetracking data files, to perform small processing tasks an
 * Determine saliency maps from fixations
 
 ### Usage
-Usage and feature examples are provided in file main.py
+Usage and feature examples are provided in file main.py.
+
 Just execute by typing
 ```python
 
@@ -23,6 +24,5 @@ Note that this project is been developed in Python 3.x (it will not work with Py
 
 *Ronaldo F. ZAMPOLO* |  LaPS/FCT/ITEC/UFPA                
  :------------------------------|------ 
- Home page|  www.laps.ufpa.br/zampolo
- Emails:      |  <zampolo@ufpa.br>, zampolo@ieee.org
-:envelope:
+ :school:|  www.laps.ufpa.br/zampolo
+ :envelope:      |  <zampolo@ufpa.br>, zampolo@ieee.org
