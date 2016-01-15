@@ -1,15 +1,10 @@
 ## @file main.py
-# **main.py:**  *Test file for the etdreader module*
 #
-# Author: Ronaldo de Freitas Zampolo 
-#
-# Begining: 07.jan.2016 
-#
-# Version 1.0: 14.jan.2016 
-# 
-#
-#
-# 
+# @brief Test file for the etdreader module
+# @detailes
+# @author Ronaldo de Freitas Zampolo 
+# @version 1.0
+# @date 14.jan.2016  
 #
 #
 import matplotlib.pyplot as plt
@@ -32,12 +27,11 @@ print('- Loading the module')
 # loading the etdreader module
 import etdreader as etdr
 
-# @var path_images
-# Path where data files are located
+# @var path_images path where data files are located
 path_images = '/home/zampolo/engenharia/projetos/posdoc/data/ivc/eyetrack_live/images/'
 
-# @var image_name
-# test image adopted for showing the visual output (all data are analised but only Saliency Map for this one is exhibited)
+# @var image_name test image name
+# @brief adopted for showing the visual output (all data are analised but only Saliency Map for this one is exhibited)
 image_name = 'paintedhouse' #'lighthouse2'
 
 # @var img
