@@ -129,7 +129,10 @@ y = np.array(y)
 # Additing the fixation points to the previous version
 
 # Generating output images/matrices
-fixMat, porImg = etdr.mapping_por_into_image( image = porImg, image_por= [x,y], shift=imageinfo[image_name][1], colour = [0,255,0])
+fixMat, porImg2 = etdr.mapping_por_into_image( image = img, image_por= [x,y], shift=imageinfo[image_name][1], colour = [0,0, 255])
+
+# Generating scanpaths
+spImage = etdr.plot_scanpath(image = img, image_fix = [x[0:9],y[0:9]], shift=imageinfo[image_name][1], r=10) 
 
 # @var sMap
 # Saliency map calculated from the Fixation Matrix
@@ -154,6 +157,18 @@ print(image_name,'- resolution: ',imageinfo[image_name][0],' shift: ',imageinfo[
 
 # --------------------------------------------------------------------- #
 
+# Saving processed images
+plt.imsave(fname = 'fixations.png',arr=porImg2)
+plt.imsave(fname = 'scanpaths.png', arr=spImage)
+plt.imsave(fname = 'fixmap.png', arr=sMap, cmap = 'gray')
+plt.imsave(fname = 'fixmapC.png', arr=sMap)
+
+# Generating supperposition
+fixMC = plt.imread('fixmapC.png')
+fixMC = fixMC[:,:,0:3]
+fix_img = etdr.hotmap(img/255.0, fixMC)
+plt.imsave(fname = 'fixImg.png', arr=fix_img)
+
 # --- Visual output --- #
 print('---')
 print('Exhibiting images')
@@ -164,12 +179,23 @@ plt.title('Original image: '+ image_name )
 # Test image with PORs and Fixation points
 #(the latter are not much apparent, but they are there)
 plt.figure()
-plt.imshow(porImg)
+plt.imshow(porImg2)
 plt.title(image_name+': POR (blue) and fixations (other color) on image')
 
-# Saliency map
+           
+# Test image with some scanpaths
 plt.figure()
-plt.imshow(sMap)
+plt.imshow(spImage)
+plt.title(image_name+': Some scanpath')
+           
+# Fixation map
+plt.figure()
+plt.imshow(sMap, cmap = 'gray')
 plt.title(image_name+': saliency map')
+
+# Hotmap
+plt.figure()
+plt.imshow(fix_img)
+plt.title(image_name+': hotmap')
 plt.show()
 # --------------------------------------------------------------------- #

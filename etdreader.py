@@ -12,6 +12,7 @@ import os
 import numpy as np
 import scipy.signal as sig
 import scipy.ndimage.filters as filt2D
+#import cv2 
 
 ## 
 # @brief This function retrieves all file names in *path* with any of given extentions in *type*
@@ -258,7 +259,7 @@ def det_indexes( x, y, shft,shp ):
 # @retval por_img test image with POR (*numpy.array*)
 def mapping_por_into_image( image, image_por, shift, colour= [0,0,255]):
 
-    por_mat = np.zeros(image.shape)
+    por_mat = np.zeros((image.shape[0],image.shape[1]))
     por_img = np.copy(image)
     
     # Deterlinening matrix positions
@@ -538,3 +539,59 @@ def saliency_map_from_fixations( fixationMat,screen_height = 1024, viewingDistan
     
     return saliencyMatrix
 
+def hotmap(image, fixmap, alpha = 0.5, gamma = 0):
+    '''
+    Add a given fixation map to an image.
+    
+    :param image: input image
+    :type image: array
+
+    :param fixmap: fixation map
+    :type fixmap: array
+
+    :param alpha: weighting parameter
+    :type alpha: float
+
+    :param gamma: dc level
+    :type gamma: float
+
+    :returns: fixation map superinposed to image (hotmap)
+    :rtype: array
+    '''
+    return alpha*image + (1-alpha) * fixmap + gamma
+   
+
+def plot_scanpath( image, image_fix, shift, colour = [0,0,255], r = 5):
+    '''
+    For a given image, this function plot a scanpath based on fixations (fx,fy).
+
+    :param image: input image
+    :type image: array
+  
+    :param image_fix: image fixations
+    :type image_fix: list of array
+
+    :param shift: information to translate reference (from screen to image)
+    :type shift: tuple
+    
+    :param colour: colour of fixation circles
+    :type colour: list of three elements
+
+    :param r: radius
+    :type r: float
+
+    :returns: image with scanpath
+    :rtype: array
+    '''
+    imout = np.copy(image)
+    # Deterlinening matrix positions        
+    indx,indy = det_indexes( image_fix[0],image_fix[1], shift, image.shape )
+    for i in range(len(indx)):
+        for x in range(-r,r+1):
+            for y in range(-r,r+1):
+                if ( x **2 + y **2 ) <= r**2:
+                    if ( (0 <= (indx[i]+x) < image.shape[0]) and (0 <= (indy[i]+y) < image.shape[1]) ):
+                        imout[indx[i]+x, indy[i]+y ] = colour
+
+
+    return imout
