@@ -559,9 +559,9 @@ def hotmap(image, fixmap, alpha = 0.5, gamma = 0):
     :rtype: array
     '''
     return alpha*image + (1-alpha) * fixmap + gamma
-   
+# ====================================================================================   
 
-def plot_scanpath( image, image_fix, shift, colour = [0,0,255], r = 5):
+def plot_scanpath( image, image_fix, shift, colour = [0,0,255], r = 5, line = True):
     '''
     For a given image, this function plot a scanpath based on fixations (fx,fy).
 
@@ -580,6 +580,9 @@ def plot_scanpath( image, image_fix, shift, colour = [0,0,255], r = 5):
     :param r: radius
     :type r: float
 
+    :param line: line between fixations
+    :type line: boolean
+
     :returns: image with scanpath
     :rtype: array
     '''
@@ -592,6 +595,33 @@ def plot_scanpath( image, image_fix, shift, colour = [0,0,255], r = 5):
                 if ( x **2 + y **2 ) <= r**2:
                     if ( (0 <= (indx[i]+x) < image.shape[0]) and (0 <= (indy[i]+y) < image.shape[1]) ):
                         imout[indx[i]+x, indy[i]+y ] = colour
+                        
+    if line == True:  # plot a line between fixation points
+        p1 = np.empty(2) # point 1 initialisation
+        p2 = np.empty(2) # point 2 initialisation
+        
+        k  = np.linspace(0,1,num=1000) # segment = p1 + k * (p2-p1)
 
+        for i in range(len(indx)-1):
+            # point 1 (current)
+            p1[0] = indx[i] # x
+            p1[1] = indy[i] # y
 
+            if ( p1[0] in range(image.shape[0]) ) and ( p1[1] in range(image.shape[1]) ): #in image limits ?
+                       
+                # point 2 (next)
+                p2[0] = indx[i+1] # x
+                p2[1] = indy[i+1] # y
+
+                difVector = p2 - p1
+
+                for j in range(len(k)):
+                    segment = (p1 +  k[j] * difVector).astype( int ) # conversion to integer
+                    #print(segment)
+                    for x in range(-1,2):
+                        for y in range(-1,2):
+                            if ( (segment[0]+x) in range(image.shape[0]) ) and (( segment[1]+y) in range(image.shape[1]) ): #in image limits ?
+                                imout[segment[0]+x, segment[1]+y] = colour
+                
     return imout
+# ====================================================================================

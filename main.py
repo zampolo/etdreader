@@ -158,16 +158,24 @@ print(image_name,'- resolution: ',imageinfo[image_name][0],' shift: ',imageinfo[
 # --------------------------------------------------------------------- #
 
 # Saving processed images
+## PNG versions
 plt.imsave(fname = 'fixations.png',arr=porImg2)
 plt.imsave(fname = 'scanpaths.png', arr=spImage)
 plt.imsave(fname = 'fixmap.png', arr=sMap, cmap = 'gray')
 plt.imsave(fname = 'fixmapC.png', arr=sMap)
+## EPS versions
+#plt.imsave(fname = 'fixations.eps',arr=porImg2)
+#plt.imsave(fname = 'scanpaths.eps', arr=spImage)
+#plt.imsave(fname = 'fixmap.eps', arr=sMap, cmap = 'gray')
+#plt.imsave(fname = 'fixmapC.eps', arr=sMap)
+#-------------------------------------------------------------
 
-# Generating supperposition
-fixMC = plt.imread('fixmapC.png')
-fixMC = fixMC[:,:,0:3]
-fix_img = etdr.hotmap(img/255.0, fixMC)
-plt.imsave(fname = 'fixImg.png', arr=fix_img)
+# Generating supperposition (find another way to do without the need to save a png first)
+fixMC = plt.imread('fixmapC.png') # reading PNG 
+fixMC = fixMC[:,:,0:3] # taking the A channel away
+fix_img = etdr.hotmap(img/255.0, fixMC) # normalising image and calling the superposition function
+plt.imsave(fname = 'fixImg.png', arr=fix_img) # salving the result (PNG)
+#plt.imsave(fname = 'fixImg.eps', arr=fix_img) # salving the result (EPS)
 
 # --- Visual output --- #
 print('---')
@@ -197,5 +205,35 @@ plt.title(image_name+': saliency map')
 plt.figure()
 plt.imshow(fix_img)
 plt.title(image_name+': hotmap')
+
+# Example of POR (distinction between saccades and fixations)
+por = np.array( lporx[0] )
+por = por[0:3999]
+
+plt.figure()
+plt.grid(True)
+plt.plot(por, 'b')
+#plt.title(image_name+': example of POR')
+plt.xlabel('amostras')
+plt.ylabel('posição do olhar (x)')
+#plt.text(500,700,'fixação 1')
+plt.annotate('fixação 1',xy=(750,650),xytext=(500,700),arrowprops=dict(facecolor='black', shrink=0.05),)
+#plt.text(2500,950,'fixação 2')
+plt.annotate('fixação 2',xy=(2750,900),xytext=(2500,950),arrowprops=dict(facecolor='black', shrink=0.05),)
+plt.axis([0,3999,500,1000])
+plt.savefig('por.pdf', dpi = 1200) # saving in PDF
+plt.savefig('por.eps', dpi = 1200) # saving in EPS
+
+plt.figure()
+plt.grid(True)
+plt.plot(por, 'b')
+#plt.title(image_name+': example of POR')
+plt.xlabel('amostras')
+plt.ylabel('posição do olhar (x)')
+plt.axis([2150,2300,500,1000])
+plt.annotate('movimento sacádico',xy=(2215,750),xytext=(2240,745),arrowprops=dict(facecolor='black', shrink=0.05),)
+plt.savefig('porDet.pdf', dpi = 1200) # saving in PDF
+plt.savefig('porDet.eps', dpi = 1200) # saving in EPS
+
 plt.show()
 # --------------------------------------------------------------------- #
